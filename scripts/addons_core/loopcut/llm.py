@@ -160,7 +160,8 @@ def _open(build: Callable[[], urllib.request.Request], base_url: str, timeout: f
         last = attempt == len(RETRY_DELAYS)
         request = build()
         try:
-            return urllib.request.urlopen(request, timeout=timeout)
+            from . import cloud_http
+            return cloud_http.urlopen(request, timeout=timeout)
         except urllib.error.HTTPError as ex:
             if request.get_header("X-loopcut-prompt"):
                 from . import cloud

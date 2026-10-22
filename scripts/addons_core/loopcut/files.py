@@ -98,16 +98,18 @@ SCHEMAS = [  # Sent with every request: every word here is paid for on every ste
 
 def project_roots() -> tuple[Path, ...]:
     """Where reads run unasked: where relative paths land (relative_base; always first, which
-    needs_approval relies on), the .blend's folder when that is not it (workspace mode), the render
-    output folder, Blender's temp folder. Main thread: reads bpy."""
+    needs_approval relies on), the .blend's folder when that is not it (workspace mode), Blender's
+    temp folder. Main thread: reads bpy."""
     import bpy
     roots = [relative_base()[0], blend_base()[0]]
-    scene = bpy.context.scene
-    if scene is not None and scene.render.filepath:
-        out = Path(bpy.path.abspath(scene.render.filepath))
-        roots.append((out if scene.render.filepath.endswith(("/", "\\")) or out.is_dir() else out.parent).resolve())
     if bpy.app.tempdir:
         roots.append(Path(bpy.app.tempdir).resolve())
+    # Not the render output folder: an opened .blend sets it, and "/" or "~/" there would make the disk
+    # readable unasked. An unsaved file's blend_base can still come from it, so a root that broad means
+    # every read asks (an empty tuple; dropping only roots[0] would move where relative paths resolve).
+    home = Path.home().resolve()
+    if any(r == Path(r.anchor) or r in (home, *home.parents) for r in roots):
+        return ()
     return tuple(dict.fromkeys(roots))
 
 

@@ -103,7 +103,8 @@ def _loopback_override(name: str) -> str:
     """A test or fake server's address from the environment. Only 127.0.0.1 is accepted, so a
     stray variable can never send a ChatGPT token anywhere but OpenAI or this computer."""
     value = os.environ.get(name, "").strip().rstrip("/")
-    if value and not value.startswith("http://127.0.0.1:"):
+    from . import config
+    if value and not config.loopback(value, port=True):
         raise ChatGPTAuthError(f"{name} may only point at http://127.0.0.1 (a local test server)")
     return value
 
@@ -410,7 +411,8 @@ def _get_json(url: str, token: str = "") -> dict:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=_HTTP_TIMEOUT) as response:
+        from . import cloud_http
+        with cloud_http.urlopen(urllib.request.Request(url, headers=headers), timeout=_HTTP_TIMEOUT) as response:
             payload = json.loads(response.read(4_000_000))
     except urllib.error.HTTPError as ex:
         with ex:

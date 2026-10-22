@@ -1,5 +1,5 @@
 """The shared library plumbing and the Blender-asset-library tools' pure parts: ranking, verified
-downloads (over file:// so no network), listing parsing, refs, index metadata. Real libraries are
+downloads (a patched urlopen serving a temp file, so no network), listing parsing, refs, index metadata. Real libraries are
 covered by harness/asset_libraries_check.py."""
 
 import hashlib
@@ -9,6 +9,7 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "addons_core"))
@@ -44,19 +45,29 @@ class RankAndDownloadTest(unittest.TestCase):
         self.assertEqual([i[0] for i in found], ["c", "b", "a"])
         self.assertEqual(asset_common.rank("zzz", items, text_of=lambda i: i[1]), [])
 
-    def test_download_over_file_url_verifies_sha256_and_md5_and_reuses_a_good_copy(self):
+    def test_download_refuses_a_file_url(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src.bin"
+            source.write_bytes(b"hello asset")
+            with self.assertRaisesRegex(tools.ToolError, "non-https"):
+                asset_common.download(source.as_uri(), Path(tmp) / "cache" / "a.bin")
+
+    def test_download_verifies_sha256_and_md5_and_reuses_a_good_copy(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "src.bin"
             source.write_bytes(b"hello asset")
             sha = hashlib.sha256(b"hello asset").hexdigest()
             dest = Path(tmp) / "cache" / "a.bin"
-            got = asset_common.download(source.as_uri(), dest, f"SHA256:{sha}", 11)
+            real = asset_common.urllib.request.urlopen
+            served = lambda request, timeout=None: real(source.as_uri(), timeout=timeout)
+            self.enterContext(mock.patch.object(asset_common.urllib.request, "urlopen", served))
+            got = asset_common.download("https://library.example/src.bin", dest, f"SHA256:{sha}", 11)
             self.assertEqual(got.read_bytes(), b"hello asset")
             stamp = dest.stat().st_mtime_ns
-            asset_common.download(source.as_uri(), dest, f"md5:{hashlib.md5(b'hello asset').hexdigest()}")
+            asset_common.download("https://library.example/src.bin", dest, f"md5:{hashlib.md5(b'hello asset').hexdigest()}")
             self.assertEqual(dest.stat().st_mtime_ns, stamp, "a verified copy is not fetched again")
             with self.assertRaises(tools.ToolError):
-                asset_common.download(source.as_uri(), Path(tmp) / "b.bin", "SHA256:" + "0" * 64)
+                asset_common.download("https://library.example/src.bin", Path(tmp) / "b.bin", "SHA256:" + "0" * 64)
             self.assertFalse((Path(tmp) / "b.bin").exists())
             self.assertFalse((Path(tmp) / "b.bin.part").exists())
 

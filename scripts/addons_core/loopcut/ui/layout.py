@@ -346,8 +346,8 @@ def _item_tool(f: Frame, n: int, item: dict, x, y, width) -> int:
                                   T.TEXT_MUTED if k == 0 and item.get("worker") else T.TEXT)
     if expanded and item["code"]:
         cursor += f.px(6)
-        cursor += f.code_block(f"item{n}.tool.code", inner_x, cursor, inner_w, item["code"],
-                               T.CODE_PREVIEW_LINES if awaiting else None)
+        # Awaiting: all of it. What is approved must be what runs; nothing hides past a "more lines" row.
+        cursor += f.code_block(f"item{n}.tool.code", inner_x, cursor, inner_w, item["code"], None)
     image_path = item.get("image_path")
     # An image shows until the user collapses its card; the code and output stay behind the toggle.
     if item.get("expanded", True) and image_path and image_path not in f.ui.get("missing_paths", ()):

@@ -355,7 +355,7 @@ class RunBlenderTest(Folder):
         result = self.then(workspace.run_blender("build.py", blend="", args=["--final"]))
         self.assertTrue(result.ok, result.text)
         self.assertIn("build.py on an empty scene: exit 0", result.text)
-        self.assertIn("-b --factory-startup --python-exit-code 1 --python", result.text)
+        self.assertIn("-b --factory-startup --disable-autoexec --python-exit-code 1 --python", result.text)
         self.assertIn(f'--python-exit-code 1 --python {workspace.SHAPE_KEY_GUARD} '
                       f'--python {workspace.OP_NOTES} --python {workspace.RENDER_PATH_GUARD} '
                       f'--python {self.ws / "build.py"} -- --final', result.text)
@@ -374,7 +374,7 @@ class RunBlenderTest(Folder):
             with self.subTest(length=len(output)):
                 def run(command, ws, env, seconds, log, is_cancelled, label=""):
                     self.assertEqual(label, "build.py")
-                    self.assertEqual(command, ["/bin/echo", "-b", "--factory-startup",
+                    self.assertEqual(command, ["/bin/echo", "-b", "--factory-startup", "--disable-autoexec",
                                                str(self.ws / "source.blend"), "--python-exit-code", "1",
                                                "--python", str(workspace.SHAPE_KEY_GUARD),
                                                "--python", str(workspace.OP_NOTES),

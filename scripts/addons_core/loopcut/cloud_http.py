@@ -53,6 +53,18 @@ def urllib_transport(request, *, timeout):
     return urllib.request.build_opener(_NoRedirect()).open(request, timeout=timeout)
 
 
+_CREDENTIAL_HEADERS = ("Authorization", "X-api-key", "X-goog-api-key")
+
+
+def urlopen(request, *, timeout):
+    """urllib.request.urlopen, but a redirect never carries the key: urllib copies req.headers to the
+    new URL (another host, even http://), not unredirected headers, so credentials move there."""
+    for name in _CREDENTIAL_HEADERS:
+        if name in request.headers:
+            request.add_unredirected_header(name, request.headers.pop(name))
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
 def validate_url(url):
     """TLS for credentials and blobs; plaintext is only for loopback development."""
     if not isinstance(url, str) or any(ord(c) <= 32 or ord(c) == 127 for c in url):

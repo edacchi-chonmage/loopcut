@@ -840,7 +840,8 @@ def run_blender(script: str, blend: str = SOURCE, args: list | None = None, time
     def then(is_cancelled, on_main):
         number = _next_run(ws)
         log = ws / LOGS / f"{number:04d}-{script_path.stem}.log"
-        command = [env["BLENDER"], "-b", "--factory-startup", *([str(blend_path)] if blend_path else []),
+        command = [env["BLENDER"], "-b", "--factory-startup", "--disable-autoexec",
+                   *([str(blend_path)] if blend_path else []),
                    "--python-exit-code", "1", "--python", str(SHAPE_KEY_GUARD),
                    "--python", str(OP_NOTES), "--python", str(RENDER_PATH_GUARD),
                    "--python", str(script_path), "--", *extra]

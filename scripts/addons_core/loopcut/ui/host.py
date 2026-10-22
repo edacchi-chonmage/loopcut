@@ -428,6 +428,10 @@ def _open_settings() -> None:
 
 def _do_action(session: dict, action) -> None:
     kind, index = action
+    # Opening these runs them (an .app is a folder, but opening it launches it).
+    runs_when_opened = {".app", ".command", ".sh", ".tool", ".terminal", ".pkg", ".mpkg", ".workflow", ".scpt",
+                        ".exe", ".bat", ".cmd", ".com", ".msi", ".ps1", ".vbs", ".vbe", ".js", ".jse", ".wsf",
+                        ".scr", ".lnk", ".url", ".jar", ".py", ".pyw"}
     if kind == "reference_url":
         account.open_browser(index)
     elif kind in {"reference_open", "reference_folder"}:
@@ -438,7 +442,9 @@ def _do_action(session: dict, action) -> None:
             if not target.exists():
                 error = f"Could not open {target.name or target}: the file is no longer at {target}."
             else:
-                if kind == "reference_folder" and not target.is_dir():
+                if kind == "reference_open" and target.suffix.lower() in runs_when_opened:
+                    kind = "reference_folder"  # A path the model named: show it, never launch it.
+                if kind == "reference_folder" and (not target.is_dir() or target.suffix.lower() in runs_when_opened):
                     target = target.parent
                 if "FINISHED" not in bpy.ops.wm.path_open(filepath=str(target)):
                     error = f"Could not open {target.name or target}: Blender could not hand it to another app."

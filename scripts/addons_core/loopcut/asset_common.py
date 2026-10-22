@@ -33,10 +33,40 @@ def valid_slug(value: str) -> bool:
     return bool(value) and bool(SLUG.match(value)) and len(value) <= 100
 
 
+_ANIMATED = ("objects", "meshes", "materials", "shape_keys", "node_groups", "worlds", "lights", "cameras",
+             "curves", "armatures", "lattices", "textures", "grease_pencils", "speakers", "scenes")
+
+
+def local_ids() -> set:
+    """session_uids of the datablocks that can carry Python: take before appending a download."""
+    import bpy
+    return {idb.session_uid for attr in ("texts", *_ANIMATED) for idb in getattr(bpy.data, attr, ())}
+
+
+def defuse_scripts(before: set) -> None:
+    """A downloaded .blend's Python stays off: a registered text would run when the file next opens, a
+    Python driver at once when auto-run is on, and the user never chose the file (the agent did)."""
+    import bpy
+    for attr in ("texts", *_ANIMATED):
+        for idb in getattr(bpy.data, attr, ()):
+            if idb.session_uid in before or idb.library is not None:
+                continue
+            if attr == "texts" and idb.use_module:
+                idb.use_module = False
+            animation = getattr(idb, "animation_data", None)
+            for fcurve in (animation.drivers if animation else ()):
+                if fcurve.driver.type == "SCRIPTED" and not fcurve.driver.is_simple_expression:
+                    fcurve.mute = True
+
+
 def open_url(url: str, headers: dict | None = None, timeout: float = TIMEOUT):
+    from . import cloud_http, config
+    # URLs come from library APIs and listings: no file:// or ftp://, and a redirect never carries a key.
+    if not (url.startswith("https://") or config.loopback(url)):
+        raise ToolError(f"Refused a non-https download URL: {url.split('?')[0][:200]}")
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
     try:
-        return urllib.request.urlopen(request, timeout=timeout)
+        return cloud_http.urlopen(request, timeout=timeout)
     except urllib.error.HTTPError as ex:
         where = url.split("?")[0]
         if ex.code == 404:

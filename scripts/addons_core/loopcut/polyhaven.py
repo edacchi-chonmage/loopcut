@@ -420,12 +420,14 @@ def _import_model(asset_id, info, resolution, blend: Path | None, gltf: Path | N
 def _append_blend(path: Path, asset_id: str) -> None:
     """Append the asset's own collection: every published model holds one named after its id,
     with `<id>_LOD0` the full-detail version when levels of detail exist."""
+    ids = asset_common.local_ids()
     with bpy.data.libraries.load(str(path), link=False) as (data_from, data_to):
         wanted = next((n for n in (f"{asset_id}_LOD0", asset_id) if n in data_from.collections), None)
         if wanted:
             data_to.collections = [wanted]
         else:
             data_to.objects = list(data_from.objects)
+    asset_common.defuse_scripts(ids)
     for collection in data_to.collections:
         if collection is not None:
             bpy.context.scene.collection.children.link(collection)

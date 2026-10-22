@@ -404,10 +404,12 @@ def load_asset(fetched: dict, apply_to: list[str] | None = None) -> ToolResult:
     link = bool(fetched.get("link"))
     before = {obj.name for obj in bpy.data.objects}
     reuse = {"reuse_local_id": True} if fetched.get("reuse") and not link else {}
+    ids = asset_common.local_ids()
     with bpy.data.libraries.load(str(blend), link=link, **reuse) as (data_from, data_to):
         if name not in getattr(data_from, attr):
             raise ToolError(f"{blend.name} no longer holds {id_type} {name!r}")
         setattr(data_to, attr, [name])
+    asset_common.defuse_scripts(ids)
     block = getattr(data_to, attr)[0]
     if block is None:
         raise ToolError(f"Blender could not load {name!r} from {blend.name}")

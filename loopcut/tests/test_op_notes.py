@@ -228,7 +228,7 @@ class WorkspaceNotes(unittest.TestCase):
                        "x" * 5000 + "\n" + NOTICE + "\n" + "x" * 5000):
             with self.subTest(length=len(output)):
                 def run(command, ws, env, seconds, log, is_cancelled, label=""):
-                    self.assertEqual(command, ["/fixture/Blender", "-b", "--factory-startup",
+                    self.assertEqual(command, ["/fixture/Blender", "-b", "--factory-startup", "--disable-autoexec",
                                                str(self.ws / "source.blend"), "--python-exit-code", "1",
                                                "--python", str(workspace.SHAPE_KEY_GUARD),
                                                "--python", str(workspace.OP_NOTES),

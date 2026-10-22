@@ -433,6 +433,8 @@ jobs:
           [ "$PLATFORMS" = windows-x64 ] || { echo "::error::mode repackage builds windows-x64 only (the Mac's is repackage_mac.sh)"; exit 1; }
           printf '%s' "$BASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::base_tag must look like v0.1.0, got: $BASE_TAG"; exit 1; }
           printf '%s' "$BASE_REPO" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' || { echo "::error::base_repo must look like owner/name"; exit 1; }
+          # Its blender.exe runs in this signing job and its unsigned files get our signature: our own repositories only.
+          [ "${BASE_REPO%%/*}" = "$GITHUB_REPOSITORY_OWNER" ] || { echo "::error::base_repo must belong to $GITHUB_REPOSITORY_OWNER, got: $BASE_REPO"; exit 1; }
           if [ -n "$RELEASE_TAG" ] && ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "::error::release_tag must look like v0.1.0, got: $RELEASE_TAG"; exit 1
           fi

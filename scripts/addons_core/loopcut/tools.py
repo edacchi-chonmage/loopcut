@@ -459,6 +459,10 @@ def _model_traceback(ex: BaseException) -> str:
 
 def run_python(code: str, summary: str = "", capture: str = "", editor: str = "") -> ToolResult:
     # Running model-written code is the product; the approval gate lives in agent.py.
+    if re.search(r"\r(?!\n)", code):
+        # Python ends a line at a lone \r, the card does not: `# note\rimport os` was approved as a comment.
+        return ToolResult("Refused: the code holds a lone carriage return (\\r), which Python reads as a line break "
+                          "the approval card does not show. Write it again with plain \\n line endings.", ok=False)
     from . import config, contact, cost_guard, live_file, op_notes, scene_diff, shape_key_guard
     stdout = io.StringIO()
     ok, raised = True, False

@@ -10,6 +10,7 @@ handed to the worker.
 
 import os
 import shutil
+import urllib.parse
 from dataclasses import dataclass, replace
 from fnmatch import fnmatchcase
 from pathlib import Path
@@ -341,10 +342,20 @@ def run_timeout() -> float:
     return seconds
 
 
+def loopback(url: str, port: bool = False) -> bool:
+    """Plain http to this computer: parsed, so http://127.0.0.1.evil.com or http://127.0.0.1@evil.com is not."""
+    try:
+        parts = urllib.parse.urlsplit(url)
+        return (parts.scheme == "http" and parts.hostname == "127.0.0.1" and parts.username is None
+                and parts.password is None and (not port or parts.port is not None))
+    except ValueError:
+        return False
+
+
 def _check_base_url(base_url: str, key: str) -> None:
     if base_url == CHATGPT_PLAN_BASE_URL or anthropic(base_url):  # anthropic:// is always sent as https.
         return
-    if not base_url.startswith("https://") and not base_url.startswith("http://127.0.0.1"):
+    if not base_url.startswith("https://") and not loopback(base_url):
         raise ConfigError(f"{key} must be https (http is allowed only for 127.0.0.1)")
 
 

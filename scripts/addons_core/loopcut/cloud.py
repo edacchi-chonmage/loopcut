@@ -1343,10 +1343,11 @@ def execute(name, arguments):
             return _sample_call(name, descriptor, module, arguments, sample, origin_scene)
         # Exports are ours. Unresolved local paths require their own gate before hashing or upload,
         # including tools invoked outside agent.run_loop and workers that cannot ask the user.
-        from . import files as local_files
         external = [str(path) for path in files.values() if not Path(path).is_relative_to(out_dir)]
-        file_consent = bool(external and any(not local_files.inside(Path(path), local_files.project_roots())
-                                            for path in external))
+        # Any local file or the packed scene leaves this computer, so the user agrees before the upload (a quote
+        # uploads its inputs, and the scene goes up before the cost card): in the project folder or not.
+        uploads = external + (["the current scene and the files it uses"] if _packs_scene(descriptor) else [])
+        file_consent = bool(uploads)
         from . import credentials
         client, vendor_key = None, None
         if descriptor["backend"] == "managed":
@@ -1377,7 +1378,7 @@ def execute(name, arguments):
         try:
             cloud_account._check_cancel(cancel)
             if file_consent:
-                cloud_account.confirm({'required': True, 'text': 'Upload local files: ' + ', '.join(external),
+                cloud_account.confirm({'required': True, 'text': 'Upload local files: ' + ', '.join(uploads),
                                        'credits': None, 'file_access': True})
             call_arguments = arguments
             if bundle_checkpoint:  # Packed once: the quote, its card and an Approve retry all send this hash.

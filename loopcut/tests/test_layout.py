@@ -240,7 +240,7 @@ class ToolCardLabelTest(unittest.TestCase):
 
     def test_awaiting_summary_is_complete_at_panel_sizes(self):
         summary = "The change is ready for review. Please check the details before continuing."
-        code = "\n".join(["pass"] * (T.CODE_PREVIEW_LINES + 2))
+        code = "\n".join(["pass"] * 12)
         for width, scale in ((240, 1), (420, 1), (438, 1), (640, 1.5)):
             for expanded in (False, True):
                 with self.subTest(width=width, scale=scale, expanded=expanded):
@@ -269,8 +269,8 @@ class ToolCardLabelTest(unittest.TestCase):
                     preview = prim(display, "item0.tool.code.bg")
                     self.assertGreaterEqual(preview["y"], name["y"] + name["h"])
                     code_rows = [p for p in frame.prims if p["id"].startswith("item0.tool.code.l")]
-                    self.assertEqual([p["text"] for p in code_rows], ["pass"] * T.CODE_PREVIEW_LINES)
-                    self.assertEqual(prim(display, "item0.tool.code.more")["text"], "… 2 more lines")
+                    self.assertEqual([p["text"] for p in code_rows], ["pass"] * 12)
+                    self.assertFalse(any(p["id"] == "item0.tool.code.more" for p in frame.prims))
                     self.assertGreaterEqual(hit(display, "item0.tool.run")["y"],
                                             preview["y"] + preview["h"])
 

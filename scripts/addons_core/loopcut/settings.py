@@ -584,7 +584,8 @@ class LOOPCUT_OT_fetch_models(bpy.types.Operator):
             request = urllib.request.Request(
                 f"{prefs.base_url.rstrip('/')}/models",
                 headers={"Authorization": f"Bearer {credentials.api_key(prefs.base_url)}", "Accept": "application/json"})
-            with urllib.request.urlopen(request, timeout=10) as response:
+            from . import cloud_http
+            with cloud_http.urlopen(request, timeout=10) as response:
                 payload = json.loads(response.read(4_000_000))
         except urllib.error.HTTPError as ex:
             self.report({"ERROR"}, f"The provider answered HTTP {ex.code}; check the key")
@@ -848,7 +849,7 @@ def values() -> dict[str, str]:
         return found
     base_url = prefs.base_url.rstrip("/")
     key = credentials.api_key(base_url) if base_url else ""
-    local = base_url.startswith("http://127.0.0.1")
+    local = config.loopback(base_url)
     if base_url and (key or local):
         found.update({"LOOPCUT_BASE_URL": base_url, "LOOPCUT_MODEL": prefs.model,
                       "LOOPCUT_API_KEY": key or "local"})

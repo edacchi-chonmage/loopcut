@@ -95,7 +95,8 @@ def _get(path: str, token: str) -> dict:
 
 def _send(request) -> dict:
     try:
-        with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:
+        from . import cloud_http
+        with cloud_http.urlopen(request, timeout=_TIMEOUT) as response:
             payload = json.loads(response.read(1_000_000))
     except urllib.error.HTTPError as ex:
         with ex:

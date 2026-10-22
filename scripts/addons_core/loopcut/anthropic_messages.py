@@ -93,7 +93,8 @@ def api_base(base_url: str) -> str:
     test or fake server; only 127.0.0.1 is accepted, so a stray variable can never send the key elsewhere."""
     override = os.environ.get("LOOPCUT_ANTHROPIC_API_URL", "").strip().rstrip("/")
     if override:
-        if not override.startswith("http://127.0.0.1:"):
+        from . import config
+        if not config.loopback(override, port=True):
             raise llm.LLMError("LOOPCUT_ANTHROPIC_API_URL may only point at http://127.0.0.1 (a local test server)")
         return override
     rest = (base_url or "").split("://", 1)[-1].strip().rstrip("/")
@@ -730,7 +731,8 @@ def _post(url: str, body: dict, betas: list[str], api_key: str, timeout: float):
         headers["anthropic-beta"] = ",".join(betas)
     request = urllib.request.Request(url + "/messages", data=json.dumps(body).encode("utf-8"), method="POST",
                                      headers=headers)
-    return urllib.request.urlopen(request, timeout=timeout)
+    from . import cloud_http
+    return cloud_http.urlopen(request, timeout=timeout)
 
 
 def _open(build: Callable[[], tuple[dict, list[str]]], url: str, api_key: str, timeout: float, host: str,
@@ -826,7 +828,8 @@ def list_models(base_url: str, api_key: str, timeout: float = 10.0) -> list[str]
     """The model ids this key can use, newest first (GET /v1/models). Raises urllib's errors."""
     request = urllib.request.Request(api_base(base_url) + "/models?limit=1000", headers={
         "x-api-key": api_key, "anthropic-version": API_VERSION, "Accept": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    from . import cloud_http
+    with cloud_http.urlopen(request, timeout=timeout) as response:
         payload = json.loads(response.read(4_000_000))
     rows = payload.get("data") if isinstance(payload, dict) else None
     return [str(r["id"]) for r in rows or [] if isinstance(r, dict) and r.get("id")]

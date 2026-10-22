@@ -90,7 +90,7 @@ def platform_key(platform: str = sys.platform, machine: str = "") -> str:
 
 
 def _https(url, what: str) -> str:
-    if not isinstance(url, str) or not (url.startswith("https://") or url.startswith("http://127.0.0.1")):
+    if not isinstance(url, str) or not (url.startswith("https://") or config.loopback(url)):
         raise UpdateError(f"update.json: {what} must be an https URL")  # http only for a local trial server.
     return url
 
@@ -289,7 +289,7 @@ def _download_dir() -> Path:
 
 
 def _fetch_manifest() -> dict:
-    if not (MANIFEST_URL.startswith("https://") or MANIFEST_URL.startswith("http://127.0.0.1")):
+    if not (MANIFEST_URL.startswith("https://") or config.loopback(MANIFEST_URL)):
         raise UpdateError("LOOPCUT_UPDATE_URL must be https (http is allowed only for 127.0.0.1)")
     request = urllib.request.Request(MANIFEST_URL, headers={"Accept": "application/json", "Cache-Control": "no-cache"})
     try:

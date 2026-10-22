@@ -305,6 +305,13 @@ def make_handler(bridge: Bridge):
             if not self.path.rstrip("/").endswith("/chat/completions"):
                 self.send_error(404)
                 return
+            # A web page can POST text/plain here without a preflight, and DNS rebinding can read the reply;
+            # what is sent lands in prompt.md for a Claude Code session with a shell. Loopcut sends JSON to 127.0.0.1.
+            port = self.server.server_address[1]
+            if (not self.headers.get("Content-Type", "").startswith("application/json")
+                    or self.headers.get("Host") not in (f"127.0.0.1:{port}", f"localhost:{port}")):
+                self.send_error(403)
+                return
             received = now()
             prompt_id = self.headers.get('x-loopcut-prompt') or None  # Absent or empty: pass-through.
             version = None

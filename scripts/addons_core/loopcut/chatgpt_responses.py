@@ -490,7 +490,8 @@ def _post(body: dict, token: str, timeout: float, turn_state: str = "", session:
         headers[TURN_STATE_HEADER] = turn_state
     request = urllib.request.Request(chatgpt_auth.api_base() + "/responses", data=json.dumps(body).encode("utf-8"),
                                      method="POST", headers=headers)
-    return urllib.request.urlopen(request, timeout=timeout)
+    from . import cloud_http
+    return cloud_http.urlopen(request, timeout=timeout)
 
 
 def _open(build: Callable[[], dict], is_cancelled: Callable[[], bool], transcript: _Transcript,

@@ -183,7 +183,10 @@ def _fetch(asset: dict, file: dict, dest_stem: Path) -> Path:
     """Resolve a download URL into a signed file URL, then download it into the cache."""
     query = urllib.parse.urlencode({"scene_uuid": scene_id()})
     try:
-        signed = get_json(f"{file['downloadUrl']}?{query}", _headers())
+        download_url = str(file.get("downloadUrl") or "")
+        # The key goes to BlenderKit only, never to a host an API answer names.
+        own = urllib.parse.urlsplit(download_url).hostname == urllib.parse.urlsplit(API).hostname
+        signed = get_json(f"{download_url}?{query}", _headers() if own else {})
     except ToolError as ex:
         if "Refused" in str(ex):
             error = (asset.get("canDownloadError") or {}).get("messages") or []
@@ -293,11 +296,13 @@ def load_blenderkit(fetched: dict, apply_to: list[str] | None = None) -> ToolRes
         return ToolResult(f"HDRI {name!r} ({file_type}) is now the scene world {world.name!r}; rotate it with its "
                           f"Mapping node. {credit_line(asset)}")
     if kind == "material":
+        ids = asset_common.local_ids()
         with bpy.data.libraries.load(str(path), link=False) as (data_from, data_to):
             names = list(data_from.materials)
             if not names:
                 raise ToolError(f"{path.name} holds no material")
             data_to.materials = [name if name in names else names[0]]
+        asset_common.defuse_scripts(ids)
         material = data_to.materials[0]
         applied = []
         for obj_name in apply_to:
@@ -313,12 +318,14 @@ def load_blenderkit(fetched: dict, apply_to: list[str] | None = None) -> ToolRes
         where = f", applied to {', '.join(applied)}" if applied else ", not applied to anything yet"
         return ToolResult(f"Material {material.name!r} ({file_type}){where}. {credit_line(asset)}")
     before = {obj.name for obj in bpy.data.objects}
+    ids = asset_common.local_ids()
     with bpy.data.libraries.load(str(path), link=False) as (data_from, data_to):
         collections = list(data_from.collections)
         if collections:
             data_to.collections = [name if name in collections else collections[0]]
         else:
             data_to.objects = list(data_from.objects)
+    asset_common.defuse_scripts(ids)
     for collection in data_to.collections:
         if collection is not None:
             bpy.context.scene.collection.children.link(collection)
