@@ -29,11 +29,10 @@ from pathlib import Path
 
 from . import config
 
-REPO = "Samffprice/loopcut"
 # "off" disables the updater, e.g. for harness runs. http on 127.0.0.1 is for trying a local manifest.
 # Off unless set: a build made from reviewed source must not be offered upstream's installers, which
 # are unsigned and checked only against a hash in the same release. Set it to upstream's
-# f"https://github.com/{REPO}/releases/latest/download/update.json" to follow its releases.
+# https://github.com/Samffprice/loopcut/releases/latest/download/update.json to follow its releases.
 MANIFEST_URL = os.environ.get("LOOPCUT_UPDATE_URL", "off")
 FIRST_CHECK_AFTER = 20.0      # Seconds after startup: the first check should not compete with loading.
 CHECK_EVERY = 6 * 3600.0      # While Blender stays open.
